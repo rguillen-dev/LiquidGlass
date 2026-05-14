@@ -19,7 +19,9 @@ Packages/
 Package.pins
 Package.resolved
 *.xcodeproj
+!/DemoApp/LiquidGlassDemo.xcodeproj/
 *.xcworkspace
+!/DemoApp/LiquidGlassDemo.xcodeproj/project.xcworkspace/
 !default.xcworkspace
 
 # macOS
