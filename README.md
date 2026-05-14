@@ -31,6 +31,14 @@ targets: [
 https://github.com/rguillen-dev/LiquidGlass.git
 ```
 
+## Demo app
+
+A runnable iOS demo lives at [`DemoApp/`](DemoApp). Open
+`DemoApp/LiquidGlassDemo.xcodeproj` in Xcode and hit ⌘R — the project pulls in
+the local `LiquidGlass` package from this repo via a relative path, so no
+remote checkout is needed. Bundle ID `dev.ricardoguillen.LiquidGlassDemo`,
+minimum deployment iOS 17.0.
+
 ## Quick start
 
 ```swift

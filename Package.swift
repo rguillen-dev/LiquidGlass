@@ -19,11 +19,6 @@ let package = Package(
             name: "LiquidGlass",
             path: "Sources/LiquidGlass"
         ),
-        .executableTarget(
-            name: "LiquidGlassDemo",
-            dependencies: ["LiquidGlass"],
-            path: "Demo"
-        ),
         .testTarget(
             name: "LiquidGlassTests",
             dependencies: ["LiquidGlass"],
