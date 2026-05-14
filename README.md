@@ -7,6 +7,14 @@ A SwiftUI modifier that brings Apple's iOS 26 Liquid Glass material to any view,
 ![SPM](https://img.shields.io/badge/SPM-compatible-brightgreen.svg)
 ![License](https://img.shields.io/badge/License-MIT-lightgrey.svg)
 
+![LiquidGlass Demo](.github/assets/demo.gif)
+
+## Preview
+
+| Styles | Components |
+|--------|------------|
+| ![Styles tab](.github/assets/styles.png) | ![Components tab](.github/assets/components.png) |
+
 ## Installation
 
 ### Package.swift
