@@ -5,6 +5,15 @@ All notable changes to **LiquidGlass** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] — 2026-06-01
+
+### Added
+
+- `GlassEffectContainer` view that coordinates Liquid Glass morph transitions between its child surfaces. Wraps the system `GlassEffectContainer` on iOS 26 and renders content directly on iOS 17–25.
+- `.glassMorphID(_:in:)` view modifier that tags a surface for morphing inside a `GlassEffectContainer`. Forwards to the system `glassEffectID(_:in:)` on iOS 26; a no-op on iOS 17–25. Named to avoid shadowing the system API.
+- Environment-injected glass tint: `EnvironmentValues.glassTint` and the `.glassThemeTint(_:)` modifier. Any `.glass(...)`, `GlassCard`, `GlassButton`, or `GlassTabBar` without an explicit `tint` now inherits the ambient tint, so a theming layer can set it once near the root.
+- `GlassTabBar` floating bottom-navigation component with `GlassTabItem` (SF Symbol + label) and an index-based selection binding. Uses `GlassEffectContainer` on iOS 26 and a `.glass(style: .toolbar)` surface on iOS 17–25.
+
 ## [1.0.0] — 2026-05-13
 
 ### Added

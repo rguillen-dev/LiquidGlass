@@ -45,11 +45,15 @@ struct GlassModifier: ViewModifier {
     let tint: Color?
     let cornerRadius: CGFloat?
 
+    /// Falls back to the ambient tint set via ``SwiftUI/View/glassThemeTint(_:)``
+    /// when the caller does not pass an explicit `tint`.
+    @Environment(\.glassTint) private var environmentTint
+
     func body(content: Content) -> some View {
         content.modifier(
             GlassRenderingModifier(
                 style: style,
-                tint: tint,
+                tint: tint ?? environmentTint,
                 cornerRadius: cornerRadius ?? style.defaultCornerRadius
             )
         )
