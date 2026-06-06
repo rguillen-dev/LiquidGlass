@@ -123,6 +123,16 @@ On iOS 17 and 18, the package renders a hand-tuned approximation:
 The result reads as glass on every supported OS — your UI keeps the same
 intent whether it ships on iOS 17 or iOS 26.
 
+### Accessibility
+
+The native iOS 26 path inherits Reduce Transparency and Reduce Motion from the
+system automatically. The iOS 17–18 fallback reads these settings itself:
+
+* **Reduce Transparency** — the surface drops its translucent material for an
+  opaque fill and raises the inner-stroke contrast.
+* **Reduce Motion** — `GlassButton` disables its press scale/bounce animation,
+  keeping only an instantaneous opacity dim as press feedback.
+
 ## Requirements
 
 * Swift 6.0+

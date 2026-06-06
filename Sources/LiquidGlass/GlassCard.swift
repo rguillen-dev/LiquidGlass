@@ -96,3 +96,30 @@ public struct GlassCard<Content: View>: View {
         .padding()
     }
 }
+
+// The system `accessibilityReduceTransparency` key is read-only and cannot be
+// set through `.environment(...)`, so this preview drives the fallback's
+// reduced-transparency surface through the internal seam instead. On a device
+// or simulator with the setting enabled, the public `.glass(style:)` path
+// produces the same opaque surface.
+#Preview("Card — Reduce Transparency") {
+    ZStack {
+        LinearGradient(
+            colors: [.purple, .blue],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+        .ignoresSafeArea()
+
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Reduce Transparency")
+                .font(.title2.bold())
+            Text("Opaque surface with a higher-contrast rim.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+        .padding(16)
+        .glassReducedTransparencyFallback(style: .card)
+        .padding()
+    }
+}

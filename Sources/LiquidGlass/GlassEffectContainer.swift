@@ -50,7 +50,7 @@ public struct GlassEffectContainer<Content: View>: View {
 
     public var body: some View {
         #if compiler(>=6.2)
-        if #available(iOS 26.0, *) {
+        if #available(iOS 26.0, macOS 26.0, *) {
             SwiftUI.GlassEffectContainer(spacing: spacing) {
                 content
             }
@@ -81,7 +81,7 @@ public extension View {
     @ViewBuilder
     func glassMorphID(_ id: some Hashable & Sendable, in namespace: Namespace.ID) -> some View {
         #if compiler(>=6.2)
-        if #available(iOS 26.0, *) {
+        if #available(iOS 26.0, macOS 26.0, *) {
             glassEffectID(id, in: namespace)
         } else {
             self

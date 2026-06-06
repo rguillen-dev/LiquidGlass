@@ -62,14 +62,50 @@ private struct GlassButtonStyle: ButtonStyle {
     let tint: Color?
 
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.body.weight(.semibold))
-            .padding(.horizontal, 18)
-            .padding(.vertical, 10)
-            .glass(style: style, tint: tint)
-            .scaleEffect(configuration.isPressed ? 0.96 : 1.0)
-            .opacity(configuration.isPressed ? 0.85 : 1.0)
-            .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
+        // `@Environment` does not update inside a `ButtonStyle`, so the styled
+        // label lives in a nested `View` that can read Reduce Motion itself.
+        PressableGlassLabel(
+            label: configuration.label,
+            isPressed: configuration.isPressed,
+            style: style,
+            tint: tint
+        )
+    }
+
+    /// The button's label with press-state styling. Reads Reduce Motion and,
+    /// when enabled, drops the scale/bounce while keeping the opacity dim as
+    /// instantaneous press feedback.
+    fileprivate struct PressableGlassLabel<Content: View>: View {
+
+        let label: Content
+        let isPressed: Bool
+        let style: GlassStyle
+        let tint: Color?
+
+        /// Preview override. The system `accessibilityReduceMotion` key is
+        /// read-only and cannot be forced through `.environment(...)`; when
+        /// non-`nil` it overrides the environment value for previews.
+        var forceReduceMotion: Bool? = nil
+
+        @Environment(\.accessibilityReduceMotion) private var environmentReduceMotion
+
+        private var reduceMotion: Bool { forceReduceMotion ?? environmentReduceMotion }
+
+        var body: some View {
+            label
+                .font(.body.weight(.semibold))
+                .padding(.horizontal, 18)
+                .padding(.vertical, 10)
+                .glass(style: style, tint: tint)
+                .scaleEffect(scale)
+                .opacity(isPressed ? 0.85 : 1.0)
+                .animation(reduceMotion ? nil : .easeOut(duration: 0.15), value: isPressed)
+        }
+
+        private var scale: CGFloat {
+            guard !reduceMotion else { return 1.0 }
+            return isPressed ? 0.96 : 1.0
+        }
     }
 }
 
@@ -105,6 +141,35 @@ private struct GlassButtonStyle: ButtonStyle {
             }
             GlassButton(tint: .red, action: {}) {
                 Label("Delete", systemImage: "trash")
+            }
+        }
+    }
+}
+
+// The system `accessibilityReduceMotion` key is read-only and cannot be set
+// through `.environment(...)`, so this preview drives the styled label through
+// its internal Reduce Motion override (pressed, but held at scale 1.0 with no
+// bounce). On a device or simulator with the setting enabled, the public
+// `GlassButton` behaves the same way.
+#Preview("Button — Reduce Motion") {
+    ZStack {
+        LinearGradient(
+            colors: [.indigo, .mint],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+        .ignoresSafeArea()
+
+        VStack(spacing: 16) {
+            GlassButtonStyle.PressableGlassLabel(
+                label: Text("Pressed — no bounce"),
+                isPressed: true,
+                style: .button,
+                tint: nil,
+                forceReduceMotion: true
+            )
+            GlassButton(action: {}) {
+                Text("Continue")
             }
         }
     }

@@ -39,6 +39,31 @@ public extension View {
     }
 }
 
+#if DEBUG
+extension View {
+
+    /// Forces the iOS 17–18 reduced-transparency fallback for previews and tests.
+    ///
+    /// The system accessibility environment keys are read-only and cannot be set
+    /// through `.environment(...)`, so this internal seam drives the fallback's
+    /// reduced-transparency surface directly. Not part of the public API.
+    func glassReducedTransparencyFallback(
+        style: GlassStyle = .sheet,
+        tint: Color? = nil,
+        cornerRadius: CGFloat? = nil
+    ) -> some View {
+        modifier(
+            GlassRenderingModifier(
+                style: style,
+                tint: tint,
+                cornerRadius: cornerRadius ?? style.defaultCornerRadius,
+                forceReduceTransparency: true
+            )
+        )
+    }
+}
+#endif
+
 struct GlassModifier: ViewModifier {
 
     let style: GlassStyle

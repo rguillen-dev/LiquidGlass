@@ -5,6 +5,12 @@ All notable changes to **LiquidGlass** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] — 2026-06-04
+
+### Fixed
+
+- iOS 17–18 fallback now honors **Reduce Transparency** (renders an opaque surface with a higher-contrast inner stroke instead of a translucent material) and **Reduce Motion** (`GlassButton` disables its press scale/bounce animation while keeping the opacity dim as instantaneous feedback). The native iOS 26 path already gets these from the system. Closes #3.
+
 ## [1.1.0] — 2026-06-01
 
 ### Added

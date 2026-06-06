@@ -78,4 +78,43 @@ struct GlassMaterialFallbackTests {
             #expect(material.tintOpacity <= 1)
         }
     }
+
+    @Test("Reduce Transparency keeps border opacity in 0…1 and at least the base")
+    func reduceTransparencyBorderOpacityInRange() {
+        for style in GlassStyle.allCases {
+            let material = GlassMaterial(style: style)
+            let raised = material.borderOpacity(reduceTransparency: true)
+            #expect(raised >= 0)
+            #expect(raised <= 1)
+            #expect(raised >= material.fallbackBorderOpacity)
+        }
+    }
+
+    @Test("Reduce Transparency raises border contrast for styles below full opacity")
+    func reduceTransparencyRaisesContrast() {
+        for style in GlassStyle.allCases {
+            let material = GlassMaterial(style: style)
+            guard material.fallbackBorderOpacity < 1 else { continue }
+            #expect(material.borderOpacity(reduceTransparency: true) > material.fallbackBorderOpacity)
+        }
+    }
+
+    @Test("Without Reduce Transparency the border opacity equals the base")
+    func borderOpacityMatchesBaseWhenDisabled() {
+        for style in GlassStyle.allCases {
+            let material = GlassMaterial(style: style)
+            #expect(material.borderOpacity(reduceTransparency: false) == material.fallbackBorderOpacity)
+        }
+    }
+
+    @Test("Border opacity clamps at 1.0 when the boost would overflow")
+    func borderOpacityClampPath() {
+        // boost: 2.0 guarantees fallbackBorderOpacity + boost > 1 for every
+        // style (max base is 0.20), so the min(…, 1.0) clamp is always exercised.
+        for style in GlassStyle.allCases {
+            let material = GlassMaterial(style: style)
+            let clamped = material.borderOpacity(reduceTransparency: true, boost: 2.0)
+            #expect(clamped == 1.0)
+        }
+    }
 }
