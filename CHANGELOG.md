@@ -5,10 +5,24 @@ All notable changes to **LiquidGlass** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.2.0] — 2026-06-04
+## [1.2.0] — 2026-06-13
+
+### Added
+
+- `GlassTabBar` gains an `activeForeground:` parameter for the active item's
+  icon and label. When omitted, the bar now derives a **contrast-safe**
+  foreground from the resolved tint instead of reusing the tint directly, so an
+  ambient `.glassThemeTint` no longer makes the selected item collide with the
+  tinted surface and disappear.
+- `GlassContrast` helper (WCAG relative luminance, contrast ratio, and the
+  active-foreground derivation) plus `Color` resolution helpers (`glassRGBA`,
+  `glassRelativeLuminance`, `glassBrightnessScaled`).
 
 ### Fixed
 
+- `GlassTabBar` active item was drawn in the same color as the surface tint, so
+  with an ambient `.glassThemeTint` the selected tab was illegible
+  (tint-on-tint). The active foreground is now decoupled from the surface tint.
 - iOS 17–18 fallback now honors **Reduce Transparency** (renders an opaque surface with a higher-contrast inner stroke instead of a translucent material) and **Reduce Motion** (`GlassButton` disables its press scale/bounce animation while keeping the opacity dim as instantaneous feedback). The native iOS 26 path already gets these from the system. Closes #3.
 
 ## [1.1.0] — 2026-06-01
