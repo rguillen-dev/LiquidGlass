@@ -102,6 +102,12 @@ public struct GlassCard<Content: View>: View {
 // reduced-transparency surface through the internal seam instead. On a device
 // or simulator with the setting enabled, the public `.glass(style:)` path
 // produces the same opaque surface.
+//
+// Guarded by `#if DEBUG`: the preview calls `glassReducedTransparencyFallback`,
+// which is itself a DEBUG-only internal seam (see View+Glass.swift). `#Preview`
+// bodies compile in all configurations, so without this guard a non-DEBUG build
+// (Staging / Release) fails to resolve the seam.
+#if DEBUG
 #Preview("Card — Reduce Transparency") {
     ZStack {
         LinearGradient(
@@ -123,3 +129,4 @@ public struct GlassCard<Content: View>: View {
         .padding()
     }
 }
+#endif
