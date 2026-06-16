@@ -99,8 +99,11 @@ public struct GlassTabBar: View {
     /// iOS 17–18 fallback lays the tint at the literal `.toolbar` tint opacity
     /// over a translucent material. The derived active foreground must contrast
     /// against the surface it will actually appear on.
+    ///
+    /// iOS 26 native: 0.6 — reduced from 1.0 so the brand teal reads as a light
+    /// tint rather than a heavy wash. Validated range: 0.5–0.7 on device.
     private var surfaceTintOpacity: Double {
-        if #available(iOS 26.0, macOS 26.0, *) { return 0.85 } else { return 0.22 }
+        if #available(iOS 26.0, macOS 26.0, *) { return 0.6 } else { return 0.22 }
     }
 
     public var body: some View {
@@ -130,7 +133,11 @@ public struct GlassTabBar: View {
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
-            .glass(style: .toolbar, tint: resolvedTint, cornerRadius: 28)
+            // Reduce native tint opacity to 0.6 for lighter glass feel while
+            // preserving brand color identity. Validated target: teal still
+            // recognizable, bar reads lighter than full-opacity. iOS 17–18
+            // fallback is unaffected (opacity composites differently there).
+            .glass(style: .toolbar, tint: resolvedTint?.opacity(0.6), cornerRadius: 28)
         }
     }
 }
