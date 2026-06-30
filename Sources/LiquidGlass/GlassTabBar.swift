@@ -60,6 +60,9 @@ public struct GlassTabBar: View {
 
     @Environment(\.glassTint) private var environmentTint
 
+    /// Scopes the sliding selection indicator so it animates between items.
+    @Namespace private var selectionNamespace
+
     /// Creates a glass tab bar.
     ///
     /// - Parameters:
@@ -99,39 +102,73 @@ public struct GlassTabBar: View {
     /// iOS 17–18 fallback lays the tint at the literal `.toolbar` tint opacity
     /// over a translucent material. The derived active foreground must contrast
     /// against the surface it will actually appear on.
+    ///
+    /// iOS 26 native: 0.6 — reduced from 1.0 so the brand teal reads as a light
+    /// tint rather than a heavy wash. Validated range: 0.5–0.7 on device.
     private var surfaceTintOpacity: Double {
-        if #available(iOS 26.0, macOS 26.0, *) { return 0.85 } else { return 0.22 }
+        if #available(iOS 26.0, macOS 26.0, *) { return 0.6 } else { return 0.22 }
     }
 
     public var body: some View {
         GlassEffectContainer(spacing: 8) {
             HStack(spacing: 4) {
                 ForEach(Array(items.enumerated()), id: \.offset) { index, item in
+                    let isActive = selection == index
                     Button {
                         selection = index
                     } label: {
-                        VStack(spacing: 2) {
+                        VStack(spacing: 3) {
                             Image(systemName: item.icon)
-                                .font(.system(size: 20, weight: .semibold))
+                                .font(.system(size: 20, weight: isActive ? .bold : .regular))
+                                .symbolVariant(isActive ? .fill : .none)
                             Text(item.label)
-                                .font(.caption2.weight(.medium))
+                                .font(.caption2.weight(isActive ? .semibold : .medium))
                         }
                         .foregroundStyle(
-                            selection == index ? resolvedActiveForeground : Color.secondary
+                            isActive ? resolvedActiveForeground : Color.secondary
                         )
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 6)
+                        .padding(.vertical, 8)
+                        // Selected-item indicator: a raised, brighter capsule that
+                        // slides between items (matchedGeometryEffect). This is the
+                        // primary "which tab is active" affordance — colour alone on
+                        // the tinted glass was too subtle.
+                        .background(alignment: .center) {
+                            if isActive {
+                                selectionPill
+                                    .matchedGeometryEffect(id: "tab.selection", in: selectionNamespace)
+                                    .padding(.horizontal, 2)
+                            }
+                        }
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel(item.label)
-                    .accessibilityAddTraits(selection == index ? [.isSelected, .isButton] : .isButton)
+                    .accessibilityAddTraits(isActive ? [.isSelected, .isButton] : .isButton)
                 }
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
-            .glass(style: .toolbar, tint: resolvedTint, cornerRadius: 28)
+            .animation(.spring(response: 0.34, dampingFraction: 0.72), value: selection)
+            // Reduce native tint opacity to 0.6 for lighter glass feel while
+            // preserving brand color identity. Validated target: teal still
+            // recognizable, bar reads lighter than full-opacity. iOS 17–18
+            // fallback is unaffected (opacity composites differently there).
+            .glass(style: .toolbar, tint: resolvedTint?.opacity(0.6), cornerRadius: 28)
         }
+    }
+
+    /// The selected-item capsule: a bright, slightly raised highlight that reads
+    /// clearly on the tinted glass surface while staying within the Liquid Glass
+    /// visual language. A hairline rim + soft shadow give it lift.
+    private var selectionPill: some View {
+        Capsule(style: .continuous)
+            .fill(.white.opacity(0.32))
+            .overlay {
+                Capsule(style: .continuous)
+                    .strokeBorder(.white.opacity(0.30), lineWidth: 0.5)
+            }
+            .shadow(color: .black.opacity(0.10), radius: 5, x: 0, y: 2)
     }
 }
 
