@@ -117,4 +117,129 @@ struct GlassMaterialFallbackTests {
             #expect(clamped == 1.0)
         }
     }
+
+    @Test("Contrast defaults to .standard, matching the pre-Increased-Contrast behavior")
+    func contrastDefaultsToStandard() {
+        for style in GlassStyle.allCases {
+            let material = GlassMaterial(style: style)
+            let implicit = material.borderOpacity(reduceTransparency: false)
+            let explicit = material.borderOpacity(reduceTransparency: false, contrast: .standard)
+            #expect(implicit == explicit)
+        }
+    }
+
+    @Test("Increased Contrast raises border opacity independently of Reduce Transparency")
+    func increasedContrastRaisesBorderOpacityAlone() {
+        for style in GlassStyle.allCases {
+            let material = GlassMaterial(style: style)
+            let standard = material.borderOpacity(reduceTransparency: false, contrast: .standard)
+            let increased = material.borderOpacity(reduceTransparency: false, contrast: .increased)
+            #expect(standard == material.fallbackBorderOpacity)
+            #expect(increased > standard)
+            #expect(increased <= 1)
+        }
+    }
+
+    @Test("Reduce Transparency and Increased Contrast combine, clamped to 1.0")
+    func combinedReduceTransparencyAndIncreasedContrastClamped() {
+        for style in GlassStyle.allCases {
+            let material = GlassMaterial(style: style)
+            let reduceTransparencyOnly = material.borderOpacity(reduceTransparency: true, contrast: .standard)
+            let increasedContrastOnly = material.borderOpacity(reduceTransparency: false, contrast: .increased)
+            let combined = material.borderOpacity(reduceTransparency: true, contrast: .increased)
+
+            #expect(combined >= 0)
+            #expect(combined <= 1)
+            #expect(combined >= reduceTransparencyOnly)
+            #expect(combined >= increasedContrastOnly)
+        }
+    }
+
+    @Test("Increased Contrast doubles the fallback rim's line width")
+    func increasedContrastDoublesLineWidth() {
+        for style in GlassStyle.allCases {
+            let material = GlassMaterial(style: style)
+            let standard = material.borderLineWidth(contrast: .standard)
+            let increased = material.borderLineWidth(contrast: .increased)
+            #expect(increased == standard * 2)
+        }
+    }
+
+    @Test("Line width is unaffected by which style is used")
+    func lineWidthIsStyleAgnostic() {
+        let widths = GlassStyle.allCases.map { GlassMaterial(style: $0).borderLineWidth(contrast: .increased) }
+        #expect(Set(widths).count == 1)
+    }
+
+    @Test("fallbackFill selects the opaque fill under Reduce Transparency and the material otherwise")
+    func fallbackFillSelectsByReduceTransparency() {
+        // `AnyShapeStyle` isn't Equatable, so this pins the *selection*
+        // contract (never crashes / always produces a value) rather than the
+        // erased style identity — the actual visual selection is exercised by
+        // `GlassRenderingModifier` and `GlassMorphUnionSurfaces`, which both
+        // route through this same method.
+        for style in GlassStyle.allCases {
+            let material = GlassMaterial(style: style)
+            _ = material.fallbackFill(reduceTransparency: true)
+            _ = material.fallbackFill(reduceTransparency: false)
+        }
+    }
+
+    @Test("borderColor is white outside Reduce Transparency, regardless of color scheme")
+    func borderColorWhiteWithoutReduceTransparency() {
+        #expect(GlassMaterial.borderColor(reduceTransparency: false, colorScheme: .light) == .white)
+        #expect(GlassMaterial.borderColor(reduceTransparency: false, colorScheme: .dark) == .white)
+    }
+
+    @Test("borderColor contrasts against the opaque fill under Reduce Transparency")
+    func borderColorContrastsUnderReduceTransparency() {
+        #expect(GlassMaterial.borderColor(reduceTransparency: true, colorScheme: .dark) == .white)
+        #expect(GlassMaterial.borderColor(reduceTransparency: true, colorScheme: .light) == .black)
+    }
+}
+
+@Suite("GlassMaterial native morphing kill switch")
+struct GlassMaterialNativeMorphingKillSwitchTests {
+
+    @Test("nativeGlassMorphingEnabled defaults to false")
+    func defaultsToFalse() {
+        // Pinned as a regression test: `GlassEffectContainer`, `glassMorphID`,
+        // and `GlassMorphUnionModifier` all gate their native forward on this
+        // one flag (see its doc comment for the iOS 26.5 rendering-corruption
+        // incident that led to disabling it). Flipping this to `true` without
+        // an on-device verification pass would silently re-enable native
+        // morphing across all three call sites at once.
+        #expect(GlassMaterial.nativeGlassMorphingEnabled == false)
+    }
+}
+
+@Suite("GlassRenderingModifier accessibility overrides")
+struct GlassRenderingModifierAccessibilityTests {
+
+    @Test("forceContrast is preserved as configured")
+    func forceContrastPreserved() {
+        let unforced = GlassRenderingModifier(style: .card, tint: nil, cornerRadius: 16)
+        #expect(unforced.forceContrast == nil)
+
+        let forced = GlassRenderingModifier(
+            style: .card,
+            tint: nil,
+            cornerRadius: 16,
+            forceContrast: .increased
+        )
+        #expect(forced.forceContrast == .increased)
+    }
+
+    @Test("forceReduceTransparency and forceContrast are independent overrides")
+    func forceOverridesAreIndependent() {
+        let combined = GlassRenderingModifier(
+            style: .sheet,
+            tint: nil,
+            cornerRadius: 24,
+            forceReduceTransparency: true,
+            forceContrast: .increased
+        )
+        #expect(combined.forceReduceTransparency == true)
+        #expect(combined.forceContrast == .increased)
+    }
 }

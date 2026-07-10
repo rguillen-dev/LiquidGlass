@@ -21,9 +21,50 @@ import AppKit
 /// `glassEffect` directly and skips these values entirely.
 struct GlassMaterial {
 
+    /// Kill switch for native `SwiftUI.GlassEffectContainer` /
+    /// `glassEffectID(_:in:)` / `glassEffectUnion(id:namespace:)` forwarding
+    /// on iOS 26+, shared by every call site that would otherwise forward to
+    /// those system APIs: `GlassEffectContainer.body`,
+    /// `View.glassMorphID(_:in:)`, and `GlassMorphUnionModifier.body`.
+    ///
+    /// Disabled 2026-07-01 after a device-only iOS 26.5 rendering-corruption
+    /// bug root-caused from Agenda (agenda-ios): `GlassEffectContainer` was
+    /// present on two unrelated screens (a feed list behind a floating
+    /// `GlassTabBar`, and a card-detail hero) that both showed sibling
+    /// content (feed row colors / detail info-panel text) tiling into a
+    /// mosaic and clipping at the screen edges, reproducing even before any
+    /// navigation/transition fired. This matched the container's own prior
+    /// incident, so rather than patch each call site individually, every
+    /// native forward that shares the same underlying Liquid Glass
+    /// containment/morphing pipeline is gated on this one flag.
+    ///
+    /// The native branches at all three call sites remain live, compiled,
+    /// and type-checked against the real SDK — only entry into them is
+    /// gated — so re-enabling once Apple ships a fix is "flip this to
+    /// `true`" plus an on-device verification pass, not a git-archaeology
+    /// exercise, and a partial re-enable (fixing one call site but not
+    /// another) can't happen by accident.
+    ///
+    /// Keep `false` until Apple's fix has been verified stable on-device.
+    static let nativeGlassMorphingEnabled = false
+
     /// Contrast boost applied to the fallback rim when Reduce Transparency is
     /// enabled. Kept as a named constant so visual tuning is centralized.
     private static let reduceTransparencyBorderBoost: Double = 0.35
+
+    /// Contrast boost applied to the fallback rim when Increased Contrast is
+    /// enabled. Smaller than ``reduceTransparencyBorderBoost`` — Reduce
+    /// Transparency already swaps in an opaque fill (a much bigger perceptual
+    /// change), while Increased Contrast alone is a narrower nudge to keep the
+    /// rim crisp against an otherwise-unchanged translucent surface.
+    private static let increasedContrastBorderBoost: Double = 0.15
+
+    /// The fallback rim's stroke width outside Increased Contrast.
+    private static let baseBorderLineWidth: CGFloat = 0.5
+
+    /// The fallback rim's stroke width under Increased Contrast — doubled so
+    /// the rim reads as a visibly more defined edge.
+    private static let increasedContrastBorderLineWidth: CGFloat = 1.0
 
     let style: GlassStyle
 
@@ -61,24 +102,88 @@ struct GlassMaterial {
         #endif
     }
 
-    /// Resolves the inner-stroke opacity for the current accessibility state.
+    /// Resolves the fallback background fill for the current Reduce
+    /// Transparency state.
     ///
-    /// Returns ``fallbackBorderOpacity`` normally. When `reduceTransparency` is
-    /// `true` the value is raised (and clamped to `1.0`) so the rim still reads
-    /// against the now-opaque fill.
+    /// Shared by every fallback glass surface in the package
+    /// (`GlassRenderingModifier`, `GlassMorphUnionSurfaces`) so the
+    /// fill-selection logic — translucent ``fallbackMaterial`` normally,
+    /// opaque ``opaqueFallbackFill`` under Reduce Transparency — lives in one
+    /// place instead of being copy-pasted at each call site.
+    ///
+    /// - Parameter reduceTransparency: Whether Reduce Transparency is enabled.
+    /// - Returns: An erased shape style wrapping whichever fill applies.
+    func fallbackFill(reduceTransparency: Bool) -> AnyShapeStyle {
+        reduceTransparency ? AnyShapeStyle(opaqueFallbackFill) : AnyShapeStyle(fallbackMaterial)
+    }
+
+    /// Resolves the fallback rim's stroke color for the current accessibility
+    /// and color-scheme state.
+    ///
+    /// Shared by every fallback glass surface in the package
+    /// (`GlassRenderingModifier`, `GlassMorphUnionSurfaces`) so the
+    /// color-selection logic lives in one place. Bright white normally, so
+    /// the rim reads against a translucent material on any background; once
+    /// Reduce Transparency swaps in an opaque fill, the rim instead needs to
+    /// contrast against that fill's actual light/dark value — white on a dark
+    /// opaque fill, black on a light one.
     ///
     /// - Parameters:
     ///   - reduceTransparency: Whether Reduce Transparency is enabled.
-    ///   - boost: The contrast increment to apply when Reduce Transparency is
-    ///     enabled. Must be non-negative. Defaults to ``reduceTransparencyBorderBoost``.
+    ///   - colorScheme: The current `ColorScheme`, consulted only when
+    ///     `reduceTransparency` is `true`.
+    /// - Returns: `.white` normally; `.white` or `.black` under Reduce
+    ///   Transparency depending on `colorScheme`.
+    static func borderColor(reduceTransparency: Bool, colorScheme: ColorScheme) -> Color {
+        guard reduceTransparency else { return .white }
+        return colorScheme == .dark ? .white : .black
+    }
+
+    /// Resolves the inner-stroke opacity for the current accessibility state.
+    ///
+    /// Returns ``fallbackBorderOpacity`` normally. `reduceTransparency` and
+    /// `contrast` are independent settings a user can combine in any way, so
+    /// each contributes its own boost and both apply together when both are
+    /// enabled — the result is still clamped to `1.0`, so combining them never
+    /// overshoots into an absurd value, it just reaches the ceiling sooner.
+    ///
+    /// - Parameters:
+    ///   - reduceTransparency: Whether Reduce Transparency is enabled.
+    ///   - contrast: The current ``ColorSchemeContrast``. Defaults to
+    ///     `.standard` (no boost).
+    ///   - boost: The increment applied when Reduce Transparency is enabled.
+    ///     Must be non-negative. Defaults to ``reduceTransparencyBorderBoost``.
+    ///     The Increased Contrast increment is not parameterized — it always
+    ///     uses ``increasedContrastBorderBoost`` — since nothing in the
+    ///     package has ever needed to override it independently of the named
+    ///     constant.
     /// - Returns: A stroke opacity clamped to `0…1`.
     func borderOpacity(
         reduceTransparency: Bool,
+        contrast: ColorSchemeContrast = .standard,
         boost: Double = GlassMaterial.reduceTransparencyBorderBoost
     ) -> Double {
-        reduceTransparency
-            ? max(0.0, min(fallbackBorderOpacity + boost, 1.0))
-            : fallbackBorderOpacity
+        var opacity = fallbackBorderOpacity
+        if reduceTransparency { opacity += boost }
+        if contrast == .increased { opacity += GlassMaterial.increasedContrastBorderBoost }
+        return max(0.0, min(opacity, 1.0))
+    }
+
+    /// Resolves the inner-stroke line width for the current Increased
+    /// Contrast state. Reduce Transparency does not affect width — it's
+    /// handled entirely through ``borderOpacity(reduceTransparency:contrast:boost:)``
+    /// raising the rim's opacity against the now-opaque fill. Increased
+    /// Contrast instead widens the stroke itself, since a crisper, more
+    /// defined edge is the point of that setting even when the fill stays
+    /// translucent.
+    ///
+    /// - Parameter contrast: The current ``ColorSchemeContrast``.
+    /// - Returns: ``increasedContrastBorderLineWidth`` when `contrast` is
+    ///   `.increased`, otherwise ``baseBorderLineWidth``.
+    func borderLineWidth(contrast: ColorSchemeContrast) -> CGFloat {
+        contrast == .increased
+            ? GlassMaterial.increasedContrastBorderLineWidth
+            : GlassMaterial.baseBorderLineWidth
     }
 
     var fallbackShadowRadius: CGFloat {
@@ -128,6 +233,18 @@ struct GlassMaterial {
 /// Dispatches to the native Liquid Glass renderer on iOS 26+ and to a
 /// `Material`-based approximation on iOS 17 / 18. All availability checks
 /// for the package live in this type.
+///
+/// The fallback path reads Reduce Transparency (swaps the translucent
+/// material for an opaque fill) and Increased Contrast (widens and brightens
+/// the inner rim) directly, since the native iOS 26 renderer honors both for
+/// free. The two settings are independent — a user can enable either, both,
+/// or neither — so ``fallbackRendering(_:shape:)`` combines them through
+/// ``GlassMaterial/borderOpacity(reduceTransparency:contrast:boost:)``
+/// and ``GlassMaterial/borderLineWidth(contrast:)`` rather than branching on
+/// one setting at a time. Fill selection and rim color come from
+/// ``GlassMaterial/fallbackFill(reduceTransparency:)`` and
+/// ``GlassMaterial/borderColor(reduceTransparency:colorScheme:)``, shared with
+/// ``GlassMorphUnionSurfaces``'s fallback surface so both stay in sync.
 struct GlassRenderingModifier: ViewModifier {
 
     let style: GlassStyle
@@ -142,6 +259,10 @@ struct GlassRenderingModifier: ViewModifier {
     /// Transparency replaces translucent materials with an opaque fill.
     @Environment(\.colorScheme) private var colorScheme
 
+    /// Read on the fallback path only. The native iOS 26 renderer honors
+    /// Increased Contrast itself, so the native branch never consults this.
+    @Environment(\.colorSchemeContrast) private var environmentContrast
+
     /// Preview/test override. The system accessibility environment keys are
     /// read-only, so they cannot be forced through `.environment(...)`; this
     /// seam lets previews and tests exercise the reduced-transparency fallback.
@@ -149,15 +270,26 @@ struct GlassRenderingModifier: ViewModifier {
     /// "use the real environment value".
     var forceReduceTransparency: Bool? = nil
 
+    /// Preview/test override for Increased Contrast, matching
+    /// `forceReduceTransparency`'s seam pattern — `colorSchemeContrast` is
+    /// also a read-only system environment key. `nil` means "use the real
+    /// environment value".
+    var forceContrast: ColorSchemeContrast? = nil
+
     private var reduceTransparency: Bool {
         forceReduceTransparency ?? environmentReduceTransparency
     }
 
+    private var contrast: ColorSchemeContrast {
+        forceContrast ?? environmentContrast
+    }
+
     /// The fallback rim stroke should stay bright on dark backgrounds and dark
     /// on light backgrounds once Reduce Transparency switches to opaque fills.
+    /// Delegates to ``GlassMaterial/borderColor(reduceTransparency:colorScheme:)``,
+    /// shared with ``GlassMorphUnionSurfaces``.
     private var fallbackBorderColor: Color {
-        guard reduceTransparency else { return .white }
-        return colorScheme == .dark ? .white : .black
+        GlassMaterial.borderColor(reduceTransparency: reduceTransparency, colorScheme: colorScheme)
     }
 
     @ViewBuilder
@@ -197,11 +329,9 @@ struct GlassRenderingModifier: ViewModifier {
     private func fallbackRendering(_ content: Content, shape: RoundedRectangle) -> some View {
         let material = GlassMaterial(style: style)
         // Reduce Transparency swaps the translucent material for an opaque fill
-        // and raises the rim contrast. `AnyShapeStyle` keeps both branches the
-        // same `fill` type.
-        let fill: AnyShapeStyle = reduceTransparency
-            ? AnyShapeStyle(material.opaqueFallbackFill)
-            : AnyShapeStyle(material.fallbackMaterial)
+        // and raises the rim contrast. `GlassMaterial.fallbackFill` keeps this
+        // in sync with `GlassMorphUnionSurfaces`'s identical fallback surface.
+        let fill = material.fallbackFill(reduceTransparency: reduceTransparency)
         return content
             .background {
                 shape
@@ -213,8 +343,10 @@ struct GlassRenderingModifier: ViewModifier {
                     }
                     .overlay {
                         shape.strokeBorder(
-                            fallbackBorderColor.opacity(material.borderOpacity(reduceTransparency: reduceTransparency)),
-                            lineWidth: 0.5
+                            fallbackBorderColor.opacity(
+                                material.borderOpacity(reduceTransparency: reduceTransparency, contrast: contrast)
+                            ),
+                            lineWidth: material.borderLineWidth(contrast: contrast)
                         )
                     }
                     .shadow(

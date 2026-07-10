@@ -16,21 +16,19 @@ import SwiftUI
 /// tagged surface appears or disappears inside the same container, iOS 26
 /// fluidly merges or splits the glass instead of cross-fading.
 ///
-/// > Kill switch (2026-07-01): the system `SwiftUI.GlassEffectContainer`
-/// > forward is disabled on **all** OS versions, including iOS 26, pending an
-/// > Apple fix. Root-caused from Agenda (agenda-ios): the container was
-/// > present on two unrelated screens (a feed list behind a floating
-/// > `GlassTabBar`, and a card-detail hero) that both exhibited iOS 26.5
-/// > device-only rendering corruption — sibling content (feed row colors /
-/// > detail info-panel text) tiled into a mosaic and clipped at the screen
-/// > edges, reproducing even before any navigation/transition fired. This
-/// > matches the container's *own* prior incident (doc'd at the call site in
-/// > CardDetailView — "collides and blanks the destination"), so rather than
-/// > patch each call site, this type now always renders `content` directly
-/// > (the same degrade already used for iOS 17–25: morph degrades to
-/// > whatever transition the views already use, typically a cross-fade).
-/// > Re-enable the iOS 26 branch below once Apple ships a fix and it's been
-/// > verified on-device.
+/// > Kill switch: whether this forwards to the system
+/// > `SwiftUI.GlassEffectContainer` on iOS 26+ is gated on
+/// > `GlassMaterial.nativeGlassMorphingEnabled`, currently `false` — see that
+/// > flag's doc comment for the device-only iOS 26.5 rendering-corruption bug
+/// > (root-caused from Agenda/agenda-ios) that led to disabling it, and for
+/// > why the same flag also gates ``SwiftUI/View/glassMorphID(_:in:)`` and
+/// > `glassMorphUnion(id:in:style:tint:cornerRadius:)`. While the flag is
+/// > `false`, this type always renders `content` directly (the same degrade
+/// > already used for iOS 17–25: morph degrades to whatever transition the
+/// > views already use, typically a cross-fade). The native branch below is
+/// > still compiled and type-checked against the live SDK — only entry into
+/// > it is gated — so re-enabling is "flip the flag" plus an on-device
+/// > verification pass.
 ///
 /// ```swift
 /// @Namespace private var glass
@@ -52,8 +50,9 @@ public struct GlassEffectContainer<Content: View>: View {
     ///
     /// - Parameters:
     ///   - spacing: The distance within which adjacent glass surfaces merge
-    ///     into one another on iOS 26. Currently ignored — see the kill-switch
-    ///     note above the type declaration.
+    ///     into one another on iOS 26. Ignored while
+    ///     `GlassMaterial.nativeGlassMorphingEnabled` is `false` — see the
+    ///     kill-switch note above the type declaration.
     ///   - content: The views that participate in glass morphing.
     public init(spacing: CGFloat? = nil, @ViewBuilder content: () -> Content) {
         self.spacing = spacing
@@ -61,11 +60,52 @@ public struct GlassEffectContainer<Content: View>: View {
     }
 
     public var body: some View {
-        // Kill switch: do NOT forward to `SwiftUI.GlassEffectContainer` on any
-        // OS version right now — see the doc comment above. Restore the
-        // `#if compiler(>=6.2) / #available(iOS 26.0, ...)` branch once Apple's
-        // implementation is verified stable on-device.
+        // Kill switch: forwarding to `SwiftUI.GlassEffectContainer` is gated
+        // on `GlassMaterial.nativeGlassMorphingEnabled` — see the doc comment
+        // above. The native branch is compiled and type-checked continuously;
+        // only entry into it is gated, so restoring behavior is "flip the
+        // flag", not restoring deleted code.
+        #if compiler(>=6.2)
+        if #available(iOS 26.0, macOS 26.0, *), GlassMaterial.nativeGlassMorphingEnabled {
+            nativeRendering
+        } else {
+            fallbackRendering
+        }
+        #else
+        fallbackRendering
+        #endif
+    }
+
+    #if compiler(>=6.2)
+    @available(iOS 26.0, macOS 26.0, *)
+    private var nativeRendering: some View {
+        SwiftUI.GlassEffectContainer(spacing: spacing) {
+            content
+        }
+    }
+    #endif
+
+    /// The always-compiled fallback: renders `content` directly (morph
+    /// degrades to whatever transition the views already use, typically a
+    /// cross-fade) while still hosting `glassMorphUnion`'s iOS 17–18
+    /// reduction step.
+    ///
+    /// `backgroundPreferenceValue` below is unrelated to the kill switch:
+    /// it's the reduction step for `glassMorphUnion`'s fallback (see
+    /// GlassMorphUnion.swift). It's always attached so a container works as
+    /// the union's reduction point on every OS version, but it only draws
+    /// anything when a `glassMorphUnion` fallback participant has reported a
+    /// frame — while `GlassMaterial.nativeGlassMorphingEnabled` is `true` on
+    /// iOS 26+ (where `glassMorphUnion` forwards straight to the system
+    /// `glassEffectUnion` instead of reporting a frame), no entries are ever
+    /// reported here, so this stays an empty, effectively free no-op. While
+    /// the flag is `false` (the current default), this drives the shared
+    /// fallback surface on every OS version, including iOS 26.
+    private var fallbackRendering: some View {
         content
+            .backgroundPreferenceValue(GlassMorphUnionPreferenceKey.self) { entries in
+                GlassMorphUnionSurfaces(entries: entries)
+            }
     }
 }
 
@@ -74,17 +114,16 @@ public extension View {
     /// Associates this glass surface with an identity used for morph
     /// transitions inside a ``GlassEffectContainer``.
     ///
-    /// > Kill switch (2026-07-01): this is a no-op on **all** OS versions right
-    /// > now, matching ``GlassEffectContainer``'s kill switch (see its doc
-    /// > comment). Tagging an identity with `glassEffectID` only does anything
-    /// > meaningful inside a real `SwiftUI.GlassEffectContainer`, which this
-    /// > package no longer forwards to — so forwarding here would be dead code
-    /// > at best and, per the iOS 26 rendering corruption this was root-caused
-    /// > to, a live hazard at worst. Restore together with the container's
-    /// > iOS 26 branch once Apple's implementation is verified stable.
+    /// > Kill switch: gated on the same `GlassMaterial.nativeGlassMorphingEnabled`
+    /// > flag as ``GlassEffectContainer``'s (see its doc comment) — while the
+    /// > flag is `false`, this is a no-op on every OS version, since tagging
+    /// > an identity with `glassEffectID` only does anything meaningful inside
+    /// > a real `SwiftUI.GlassEffectContainer`, which this package doesn't
+    /// > forward to while the flag is off. The native forward below is still
+    /// > compiled and type-checked continuously; only entry into it is gated.
     ///
     /// > Note: This is named `glassMorphID` rather than `glassEffectID` so it
-    /// > never shadows the system API it would forward to.
+    /// > never shadows the system API it forwards to.
     ///
     /// - Parameters:
     ///   - id: A stable identity shared by the surfaces that should morph.
@@ -92,6 +131,14 @@ public extension View {
     ///     `@Namespace`.
     @ViewBuilder
     func glassMorphID(_ id: some Hashable & Sendable, in namespace: Namespace.ID) -> some View {
+        #if compiler(>=6.2)
+        if #available(iOS 26.0, macOS 26.0, *), GlassMaterial.nativeGlassMorphingEnabled {
+            glassEffectID(id, in: namespace)
+        } else {
+            self
+        }
+        #else
         self
+        #endif
     }
 }

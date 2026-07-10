@@ -61,6 +61,33 @@ extension View {
             )
         )
     }
+
+    /// Forces the iOS 17–18 Increased Contrast fallback for previews and tests.
+    ///
+    /// The system accessibility environment keys are read-only and cannot be set
+    /// through `.environment(...)`, so this internal seam drives the fallback's
+    /// increased-contrast rim (wider stroke, raised opacity) directly. Not part
+    /// of the public API.
+    ///
+    /// - Parameter reduceTransparency: Also forces the Reduce Transparency
+    ///   fallback, so the combined state (both settings enabled at once) can
+    ///   be previewed and tested. Defaults to `false`.
+    func glassIncreasedContrastFallback(
+        style: GlassStyle = .sheet,
+        tint: Color? = nil,
+        cornerRadius: CGFloat? = nil,
+        reduceTransparency: Bool = false
+    ) -> some View {
+        modifier(
+            GlassRenderingModifier(
+                style: style,
+                tint: tint,
+                cornerRadius: cornerRadius ?? style.defaultCornerRadius,
+                forceReduceTransparency: reduceTransparency,
+                forceContrast: .increased
+            )
+        )
+    }
 }
 #endif
 
