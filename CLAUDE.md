@@ -19,11 +19,19 @@ fallback (iOS 17–18) path.
 ## Architecture rules (do not violate)
 
 1. **All availability checks live in one place.** `GlassRenderingModifier` in
-   `GlassMaterial.swift` is the *only* type that branches on OS/compiler. Every
-   other file stays version-agnostic and routes through `.glass(...)`. If you
-   find yourself writing `#available` or `#if compiler` outside that file (or the
-   thin `GlassEffectContainer`/`glassMorphID` wrappers that already exist), stop —
-   you're adding it in the wrong layer.
+   `GlassMaterial.swift` is the *only* type that branches on OS/compiler for
+   glass *material* rendering. Every other file stays version-agnostic and
+   routes through `.glass(...)` wherever the feature is a glass material
+   variant. Some native Liquid Glass APIs aren't material rendering at all and
+   can't be routed through `GlassRenderingModifier` (`GlassEffectContainer`,
+   `glassEffectID`, `glassEffectUnion`, `tabViewBottomAccessory`,
+   `backgroundExtensionEffect`, ...) — those get their own thin,
+   single-purpose wrapper file using the same two-axis guard and nothing else
+   (see `GlassEffectContainer.swift`, `GlassMorphUnion.swift`,
+   `GlassBottomAccessory.swift`, `GlassBackgroundExtension.swift` for the
+   established pattern). If you find yourself writing `#available` or
+   `#if compiler` scattered across an unrelated component instead of inside a
+   dedicated wrapper like these, stop — you're adding it in the wrong layer.
 
 2. **Two-axis availability guard.** The native path is gated on BOTH:
    ```swift
