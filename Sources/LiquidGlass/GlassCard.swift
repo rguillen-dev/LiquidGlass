@@ -129,4 +129,54 @@ public struct GlassCard<Content: View>: View {
         .padding()
     }
 }
+
+// Same rationale as the Reduce Transparency preview above: `colorSchemeContrast`
+// is read-only, so this drives the fallback's increased-contrast rim through the
+// internal seam. On a device or simulator with Increased Contrast enabled, the
+// public `.glass(style:)` path produces the same wider, brighter rim.
+#Preview("Card — Increased Contrast") {
+    ZStack {
+        LinearGradient(
+            colors: [.purple, .blue],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+        .ignoresSafeArea()
+
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Increased Contrast")
+                .font(.title2.bold())
+            Text("Translucent surface with a wider, brighter rim.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+        .padding(16)
+        .glassIncreasedContrastFallback(style: .card)
+        .padding()
+    }
+}
+
+// Demonstrates the combined state: both settings are independent, so a user
+// can have Reduce Transparency and Increased Contrast on at the same time.
+#Preview("Card — Reduce Transparency + Increased Contrast") {
+    ZStack {
+        LinearGradient(
+            colors: [.purple, .blue],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+        .ignoresSafeArea()
+
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Both settings enabled")
+                .font(.title2.bold())
+            Text("Opaque surface with the widest, highest-contrast rim.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+        .padding(16)
+        .glassIncreasedContrastFallback(style: .card, reduceTransparency: true)
+        .padding()
+    }
+}
 #endif

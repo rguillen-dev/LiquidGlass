@@ -41,6 +41,14 @@ struct Glass {
 
 Chaining is order-independent: `.regular.tint(.orange).interactive()`.
 
+> Incidental finding (2026-07-09, live iOS 26.4 SDK, not otherwise part of
+> this reference pass): the live SDK's `tint` and `interactive` are
+> `func tint(_ color: Color?) -> Glass` (optional color) and
+> `func interactive(_ isEnabled: Bool = true) -> Glass` (defaulted param) —
+> both are backward-compatible with the signatures above, so nothing in this
+> package needed to change, but flagging the drift here for the next agent
+> who touches `Glass` chaining directly.
+
 Variant selection:
 - `.regular` — toolbars, buttons, nav bars, tab bars, standard controls.
 - `.clear` — only when ALL hold: over media-rich content, content survives a
@@ -67,10 +75,18 @@ one container makes the glass morph rather than cross-fade.
 > In THIS package, wrap this as `glassMorphID(_:in:)` — never shadow the system name.
 
 ```swift
-func glassEffectUnion<ID: Hashable>(id: ID, namespace: Namespace.ID) -> some View
+func glassEffectUnion(id: (some Hashable & Sendable)?, namespace: Namespace.ID) -> some View
 ```
 Manually merge glass shapes too far apart to merge by `spacing`. Requirements:
 same id, same glass type, similar shapes, all in the same container.
+> Confirmed 2026-07-09 against the live iOS 26.4 SDK symbol index
+> (`SwiftUICore.swiftmodule`) while building `glassMorphUnion`: signature is
+> exactly as above (optional opaque `id`, not a plain `ID: Hashable` generic —
+> this doc's earlier signature was slightly off). Availability:
+> `@available(iOS 26.0, macOS 26.0, tvOS 26.0, watchOS 26.0, *)`,
+> `@available(visionOS, unavailable)`.
+> In THIS package, wrap this as `glassMorphUnion(id:in:style:tint:cornerRadius:)`
+> — never shadow the system name.
 
 ```swift
 func glassEffectTransition(_ transition: GlassEffectTransition, isEnabled: Bool = true) -> some View
@@ -120,9 +136,26 @@ TabView:
 ```swift
 .tabBarMinimizeBehavior(.automatic | .onScrollDown | .never)
 .tabViewBottomAccessory { /* persistent glass view above tab bar */ }
-@Environment(\.tabViewBottomAccessoryPlacement) var placement  // .expanded | .collapsed
+.tabViewBottomAccessory(isEnabled: Bool) { /* iOS 26.1+ only — see note below */ }
+@Environment(\.tabViewBottomAccessoryPlacement) var placement  // TabViewBottomAccessoryPlacement?
 Tab("Search", systemImage: "magnifyingglass", role: .search) { ... }  // floating search
 ```
+> Confirmed 2026-07-09 against the live iOS 26.4 SDK symbol index
+> (`SwiftUI.swiftmodule`'s `arm64e-apple-ios.swiftinterface`) while building
+> `GlassBottomAccessory`:
+> - `tabViewBottomAccessory(content:)` — `@available(iOS 26.0, *)`.
+> - `tabViewBottomAccessory(isEnabled:content:)` — `@available(iOS 26.1, *)`,
+>   **one point release later** than the base overload. Code targeting exactly
+>   iOS 26.0 must gate `isEnabled` manually (no such parameter exists yet).
+> - Both overloads are **iOS-only**: `@available(macOS, unavailable)`,
+>   `@available(tvOS, unavailable)`, `@available(watchOS, unavailable)`,
+>   `@available(visionOS, unavailable)`. There is no accessory slot outside iOS.
+> - `TabViewBottomAccessoryPlacement` (`SwiftUICore`) has exactly two cases:
+>   **`.inline` and `.expanded`** — not `.collapsed`, correcting this doc's
+>   earlier placeholder. The `tabViewBottomAccessoryPlacement` environment
+>   value itself is available on iOS/macOS/tvOS/watchOS/visionOS 26.0 (it's
+>   just always `nil` off iOS, since there's no accessory to report a
+>   placement for).
 
 Sheets / zoom morph:
 ```swift
@@ -130,7 +163,13 @@ Sheets / zoom morph:
 .navigationTransition(.zoom(sourceID: ID, in: namespace))
 .scrollContentBackground(.hidden)         // let glass show through a Form/List chrome
 .backgroundExtensionEffect()              // extend content under floating chrome
+.backgroundExtensionEffect(isEnabled: Bool)
 ```
+> Confirmed 2026-07-09 against the live iOS 26.4 SDK symbol index
+> (`SwiftUI.swiftmodule`) while building `glassBackgroundExtension`: both
+> overloads are `@available(iOS 26.0, macOS 26.0, tvOS 26.0, watchOS 26.0, visionOS 26.0, *)`
+> — no split availability between them (unlike `tabViewBottomAccessory` above).
+> In THIS package, wrap this as `glassBackgroundExtension(isEnabled:)`.
 
 ## 7. Accessibility
 
@@ -142,9 +181,32 @@ On the FALLBACK path (iOS 17–18) you must do this yourself:
 ```swift
 @Environment(\.accessibilityReduceTransparency) var reduceTransparency
 @Environment(\.accessibilityReduceMotion) var reduceMotion
+@Environment(\.colorSchemeContrast) var contrast   // ColorSchemeContrast: .standard / .increased
 ```
 - Reduce Transparency → drop translucency toward an opaque surface.
 - Reduce Motion → remove press/morph animation.
+- Increased Contrast → crisp up the rim/border (e.g. wider stroke, higher opacity)
+  so edges read clearly even when the fill stays translucent.
+
+`ColorSchemeContrast` (`SwiftUI`, stable since iOS 14) is not a Liquid-Glass-specific
+API, so reading it needs no availability grounding or `#available` guard of its own —
+it's gated the same way as `reduceTransparency`/`reduceMotion` above: behind the
+package's existing fallback-path branch, in `GlassRenderingModifier`. This package's
+implementation lives in `GlassMaterial.borderOpacity(reduceTransparency:contrast:boost:)`
+and `GlassMaterial.borderLineWidth(contrast:)`, both consumed by `GlassRenderingModifier`
+and `GlassMorphUnionSurfaces`. `GlassBackgroundExtensionMetrics` also takes `contrast`
+for its own bleed-layer blur/opacity tuning. Reduce Transparency and Increased
+Contrast are independent — a user can enable either, both, or neither — so treat
+them as separate boosts to combine, not a single flag.
+
+> Corrected 2026-07-09, verified against the live `SwiftUICore.swiftinterface`
+> (both macOS and iOS 26.4 SDKs): the Increased Contrast environment key is
+> **`colorSchemeContrast`**, not `accessibilityContrast` — no such member
+> exists on `EnvironmentValues` in the current SDK (confirmed by a failed
+> `swift build`: "value of type 'EnvironmentValues' has no member
+> 'accessibilityContrast'"). Unlike `accessibilityReduceTransparency` /
+> `accessibilityReduceMotion`, this one doesn't carry the `accessibility`
+> prefix. Don't reintroduce `accessibilityContrast` from memory.
 
 ## 8. UIKit equivalents (only if we ever add a UIKit layer)
 
@@ -186,4 +248,4 @@ per-style tuned. Use that, not this snippet.)
 - [ ] Variant is one of `.regular` / `.clear` / `.identity`.
 - [ ] Multiple surfaces share a `GlassEffectContainer`.
 - [ ] Both render paths handled, behind the two-axis guard.
-- [ ] Fallback handles Reduce Transparency / Reduce Motion.
+- [ ] Fallback handles Reduce Transparency / Reduce Motion / Increased Contrast.
