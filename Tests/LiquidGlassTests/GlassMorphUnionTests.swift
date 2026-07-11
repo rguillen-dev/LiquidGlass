@@ -183,3 +183,18 @@ struct GlassMorphUnionGroupKeyTests {
         #expect(a != b)
     }
 }
+
+@Suite("glassMorphUnion reducer-presence fallback")
+struct GlassMorphUnionReducerPresenceTests {
+
+    // A `glassMorphUnion` participant reads `\.isInsideGlassMorphUnionReducer`
+    // to decide whether reporting an anchor preference will actually get
+    // collected by an enclosing `GlassEffectContainer`. Outside a container
+    // that default must be `false`, or a participant would report a
+    // preference into the void and render no glass at all instead of
+    // degrading to a plain, unmerged surface.
+    @Test("Defaults to false so a participant outside any container degrades to plain glass")
+    func defaultsToFalseOutsideAnyContainer() {
+        #expect(EnvironmentValues()[GlassMorphUnionReducerPresenceKey.self] == false)
+    }
+}

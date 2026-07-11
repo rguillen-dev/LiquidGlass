@@ -24,7 +24,7 @@ import SwiftUI
 /// > why the same flag also gates ``SwiftUI/View/glassMorphID(_:in:)`` and
 /// > `glassMorphUnion(id:in:style:tint:cornerRadius:)`. While the flag is
 /// > `false`, this type always renders `content` directly (the same degrade
-/// > already used for iOS 17–25: morph degrades to whatever transition the
+/// > already used for iOS 17–18: morph degrades to whatever transition the
 /// > views already use, typically a cross-fade). The native branch below is
 /// > still compiled and type-checked against the live SDK — only entry into
 /// > it is gated — so re-enabling is "flip the flag" plus an on-device
@@ -88,7 +88,9 @@ public struct GlassEffectContainer<Content: View>: View {
     /// The always-compiled fallback: renders `content` directly (morph
     /// degrades to whatever transition the views already use, typically a
     /// cross-fade) while still hosting `glassMorphUnion`'s iOS 17–18
-    /// reduction step.
+    /// reduction step, and marking `content` as inside a reducer via
+    /// `\.isInsideGlassMorphUnionReducer` so a `glassMorphUnion` participant
+    /// knows its anchor preference will actually be collected.
     ///
     /// `backgroundPreferenceValue` below is unrelated to the kill switch:
     /// it's the reduction step for `glassMorphUnion`'s fallback (see
@@ -103,6 +105,7 @@ public struct GlassEffectContainer<Content: View>: View {
     /// fallback surface on every OS version, including iOS 26.
     private var fallbackRendering: some View {
         content
+            .environment(\.isInsideGlassMorphUnionReducer, true)
             .backgroundPreferenceValue(GlassMorphUnionPreferenceKey.self) { entries in
                 GlassMorphUnionSurfaces(entries: entries)
             }

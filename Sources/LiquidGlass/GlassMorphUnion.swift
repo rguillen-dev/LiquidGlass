@@ -50,10 +50,16 @@ public extension View {
     /// themselves render no individual background on the fallback path, so
     /// nothing double-renders.
     ///
-    /// > Important: a `glassMorphUnion` group only merges visually inside a
-    /// > ``GlassEffectContainer``. Passing `id: nil` is the off switch: the
-    /// > view falls back to plain ``SwiftUI/View/glass(style:tint:cornerRadius:)``
-    /// > rendering (matching how the system `glassEffectUnion` treats a `nil` id).
+    /// > Important: a `glassMorphUnion` group only *merges* visually inside a
+    /// > ``GlassEffectContainer`` — that's the reduction point that collects
+    /// > every participant's reported frame and draws the one shared surface.
+    /// > Passing `id: nil` is the off switch: the view falls back to plain
+    /// > ``SwiftUI/View/glass(style:tint:cornerRadius:)`` rendering (matching
+    /// > how the system `glassEffectUnion` treats a `nil` id). A non-`nil` `id`
+    /// > used **outside** a ``GlassEffectContainer`` degrades the same way: the
+    /// > fallback path has nowhere to reduce the reported frame, so it renders
+    /// > this surface as plain, unmerged glass instead of silently rendering
+    /// > nothing.
     ///
     /// > Note: Named `glassMorphUnion` — not `glassEffectUnion` — so it never
     /// > shadows the system API it wraps. Same precedent as ``SwiftUI/View/glassMorphID(_:in:)``.
@@ -114,6 +120,7 @@ struct GlassMorphUnionModifier<ID: Hashable & Sendable>: ViewModifier {
     let cornerRadius: CGFloat
 
     @Environment(\.glassTint) private var environmentTint
+    @Environment(\.isInsideGlassMorphUnionReducer) private var isInsideReducer
 
     private var resolvedTint: Color? { tint ?? environmentTint }
 
@@ -152,7 +159,7 @@ struct GlassMorphUnionModifier<ID: Hashable & Sendable>: ViewModifier {
 
     @ViewBuilder
     private func fallbackRendering(_ content: Content, shape: RoundedRectangle) -> some View {
-        if let id {
+        if let id, isInsideReducer {
             // No individual background here — the shared surface is drawn once
             // by the enclosing `GlassEffectContainer` from the collected
             // preference entries, so this participant doesn't double-render.
@@ -170,9 +177,32 @@ struct GlassMorphUnionModifier<ID: Hashable & Sendable>: ViewModifier {
                     ]
                 }
         } else {
-            // `nil` id: the off switch. Render as a normal, unmerged glass surface.
+            // `nil` id: the off switch. A non-`nil` id used outside a
+            // `GlassEffectContainer` degrades the same way — there's no
+            // reducer to collect the anchor preference into a shared surface,
+            // so this renders as a normal, unmerged glass surface instead of
+            // silently rendering nothing.
             content.glass(style: style, tint: resolvedTint, cornerRadius: cornerRadius)
         }
+    }
+}
+
+// MARK: - Fallback container presence
+
+/// Internal environment flag set by ``GlassEffectContainer``'s fallback body
+/// so a `glassMorphUnion` participant can tell whether it's actually inside a
+/// container capable of reducing its anchor preference into a shared surface.
+/// Not public API — purely a fallback-path implementation detail that lets
+/// `GlassMorphUnionModifier` degrade to plain, unmerged glass instead of
+/// silently rendering nothing when used outside a container.
+struct GlassMorphUnionReducerPresenceKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+extension EnvironmentValues {
+    var isInsideGlassMorphUnionReducer: Bool {
+        get { self[GlassMorphUnionReducerPresenceKey.self] }
+        set { self[GlassMorphUnionReducerPresenceKey.self] = newValue }
     }
 }
 
