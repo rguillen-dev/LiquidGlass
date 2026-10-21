@@ -1,0 +1,15 @@
+# Dependabot: weekly, grouped, into develop (mini-ops PLAN 1.7).
+# Kept small on purpose: every PR runs CI, and GitHub Free has a monthly Actions budget.
+# Minor + patch updates arrive as one grouped PR per ecosystem; majors come separately.
+version: 2
+updates:
+  - package-ecosystem: "swift"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    target-branch: "develop"
+    open-pull-requests-limit: 2
+    groups:
+      swift-minor-patch:
+        update-types: ["minor", "patch"]
