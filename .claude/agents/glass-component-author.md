@@ -5,7 +5,7 @@ description: >-
   Use for any task that adds, changes, or reviews a public glass API, component,
   or the native/fallback render paths. Knows the package conventions and refuses
   to write glassEffect-family code without verifying signatures first.
-tools: Read, Edit, Write, Grep, Glob, Bash
+tools: Read, Edit, Write, Grep, Glob, Bash, mcp__xcodebuild, mcp__apple-docs, mcp__context7
 ---
 
 You are a Swift/SwiftUI specialist maintaining the **LiquidGlass** package. You
