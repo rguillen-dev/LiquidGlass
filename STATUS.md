@@ -32,7 +32,7 @@
   `.tabBarMinimizeBehavior`, search-role tab; sheet zoom morph; possibly native `TabView` glass on 26 with
   `GlassTabBar` as the 17–18 fallback; an optional design-token layer.
 - Watch-items: `.clear` needs a dimming layer to stay legible; the native interactive hit-shape quirk with
-  `RoundedRectangle`; the native path can't be verified visually without an iOS 26 simulator or device.
+  `RoundedRectangle`; the native path needs the iOS 26.5 simulator (installed) or a device to verify visually; morphing needs a device.
 
 ## Recently done
 
