@@ -9,6 +9,16 @@
         "mcp"
       ],
       "env": {}
+    },
+    "swift-dev-links": {
+      "type": "stdio",
+      "command": "uv",
+      "args": [
+        "--directory",
+        "${HOME}/Development/swift-dev-links",
+        "run",
+        "src/server.py"
+      ]
     }
   }
 }

@@ -11,15 +11,21 @@
 
 ## Now
 
-- **Agent tune-up** — `chore/agent-tuneup` (2026-10-21, pushed, not merged): `glass-component-author` gets
-  `mcp__xcodebuild`, `mcp__apple-docs` and `mcp__context7`, so it can verify signatures as its prompt requires.
+- Nothing in flight. `chore/swift-dev-links` (ops I46): MCP server + read-only rule.
+
+**From ops** (detail in `~/Development/mini-ops/docs/OPS_BACKLOG.md`; read the item first, annotate it when done):
+- **I46:** swift-dev-links read-only (mini-ops OPS_BACKLOG I46): `.mcp.json` + `CLAUDE.md` "API grounding"; search only, never refresh/tag.
 
 ## Next
 
-- **Re-enable native glass morphing on iOS 26** — flip `GlassMaterial.nativeGlassMorphingEnabled`
-  (`Sources/LiquidGlass/GlassMaterial.swift`, `false` by default) and run an on-device verification
-  pass. It gates `GlassEffectContainer`, `glassMorphID` and `glassMorphUnion`, which were switched off
-  over the iOS 26.5 device-only rendering-corruption bug.
+- **1.4.0: native glass morphing on iOS 27** — `GlassMaterial.nativeGlassMorphingEnabled` (`false`) was a
+  global kill switch for the device-only iOS 26.5 rendering corruption (07-01, from agenda-ios); never
+  retested on 27.x. (1) On-device pass on iOS 27.2 (`GlassEffectContainer`, `glassMorphID`, `glassMorphUnion`,
+  the two agenda-ios screens). (2) If fixed: gate on `#available(iOS 27.0, *)` instead of flipping it, so
+  26.x keeps today's non-morphing path. (3) Ride-alongs: `glassMorphTransition` wrapper (`glassEffectTransition`,
+  v1.2 plan #5); check iOS 27's automatic glass tint doesn't stack with `glassThemeTint`.
+  Only consumer: Journal (agenda-ios, local path dep; Feed + CardDetail were the 26.5 screens). Start after
+  Journal iOS 1.2.0 is submitted. Expert agent: `glass-component-author`; Ricardo holds the device. Minor bump, CHANGELOG, tag.
 
 ## Blocked
 
@@ -36,6 +42,7 @@
 
 ## Recently done
 
+- 2026-10-21 — `chore/agent-tuneup` merged (PR #3, `5cf1e2a`): `glass-component-author` gets its MCP tools.
 - 2026-10-21 — Weekly grouped Dependabot config; MCP servers pinned (no `@latest`); XcodeBuildMCP added.
 - 2026-07-11 — 1.3.0: `GlassBottomAccessory`, `.glassMorphUnion`, `.glassBackgroundExtension`, Increased
   Contrast in the fallback path, and the shared native-morphing kill switch.
