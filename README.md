@@ -21,7 +21,7 @@ A SwiftUI modifier that brings Apple's iOS 26 Liquid Glass material to any view,
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/rguillen-dev/LiquidGlass.git", from: "0.1.0")
+    .package(url: "https://github.com/rguillen-dev/LiquidGlass.git", from: "1.3.0")
 ],
 targets: [
     .target(

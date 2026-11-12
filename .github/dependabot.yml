@@ -1,4 +1,4 @@
-# Dependabot: weekly, grouped, into develop (mini-ops PLAN 1.7).
+# Dependabot: weekly, grouped, into develop.
 # Kept small on purpose: every PR runs CI, and GitHub Free has a monthly Actions budget.
 # Minor + patch updates arrive as one grouped PR per ecosystem; majors come separately.
 version: 2

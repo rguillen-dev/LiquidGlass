@@ -5,7 +5,7 @@
 > [Docs/v1.2-plan.md](Docs/v1.2-plan.md) (v2.0 deferrals and watch-items),
 > [Docs/LiquidGlassAPIReference.md](Docs/LiquidGlassAPIReference.md) (verified API signatures).
 
-**Shipped:** 1.3.0 (2026-07-11), tagged. Consumed by agenda-ios as a local path dependency.
+**Shipped:** 1.3.0 (2026-07-11), tagged. Used in production by one app (as a local path dependency).
 **In flight:** nothing on the package itself. `develop` is 1.3.0 plus tooling only
 (MCP pins, XcodeBuildMCP, Dependabot).
 
@@ -13,20 +13,20 @@
 
 - Nothing in flight.
 
-**From ops** (detail in `~/Development/mini-ops/docs/OPS_BACKLOG.md`; read the item first, annotate it when done):
-- **I58:** a `.mise.toml` `test` task (iOS 27.2 sim, sim-lock) so the mini's nightly can run the package's own tests.
-- **I59:** before the first 1.4.0 code commit, agenda-ios pins `exactVersion: 1.3.0` instead of the local path.
+**Tracked with the maintainer's tooling:**
+- **I58:** run the package's own tests automatically (they run by hand today; last 62/62 on iOS 27.2).
+- **I59:** before the first 1.4.0 code commit, the consuming app pins `exactVersion: 1.3.0` instead of a local path.
 
 ## Next
 
 - **1.4.0: native glass morphing on iOS 27** — `GlassMaterial.nativeGlassMorphingEnabled` (`false`) was a
-  global kill switch for the device-only iOS 26.5 rendering corruption (07-01, from agenda-ios); never
-  retested on 27.x. (0) agenda-ios pinned to 1.3.0 first (ops I59). (1) On-device pass on iOS 27.2 (`GlassEffectContainer`, `glassMorphID`, `glassMorphUnion`,
-  the two agenda-ios screens). (2) If fixed: gate on `#available(iOS 27.0, *)` instead of flipping it, so
+  global kill switch for the device-only iOS 26.5 rendering corruption (07-01, found in the consuming app); never
+  retested on 27.x. (0) consuming app pinned to 1.3.0 first (I59). (1) On-device pass on iOS 27.2 (`GlassEffectContainer`, `glassMorphID`, `glassMorphUnion`,
+  the two app screens where it showed: a feed behind `GlassTabBar` and a detail hero). (2) If fixed: gate on `#available(iOS 27.0, *)` instead of flipping it, so
   26.x keeps today's non-morphing path. (3) Ride-alongs: `glassMorphTransition` wrapper (`glassEffectTransition`,
   v1.2 plan #5); check iOS 27's automatic glass tint doesn't stack with `glassThemeTint`.
-  Only consumer: Journal (agenda-ios, local path dep; Feed + CardDetail were the 26.5 screens). Start after
-  Journal iOS 1.2.0 is submitted. Expert agent: `glass-component-author`; Ricardo holds the device. Minor bump, CHANGELOG, tag.
+  Start after the consuming app's current release is submitted. Agent: `glass-component-author`; the device
+  pass is by hand. Minor bump, CHANGELOG, tag.
 
 ## Blocked
 
@@ -39,11 +39,11 @@
   `.tabBarMinimizeBehavior`, search-role tab; sheet zoom morph; possibly native `TabView` glass on 26 with
   `GlassTabBar` as the 17–18 fallback; an optional design-token layer.
 - Watch-items: `.clear` needs a dimming layer to stay legible; the native interactive hit-shape quirk with
-  `RoundedRectangle`; the native path needs the iOS 26.5 simulator (installed) or a device to verify visually; morphing needs a device.
+  `RoundedRectangle`; the native path needs an iOS 26+ simulator or a device to verify visually; morphing needs a device.
 
 ## Recently done
 
-- 2026-11-12 — ops I46 ✅ (`0bf7928`): swift-dev-links MCP, read-only (`CLAUDE.md` "API grounding").
+- 2026-11-12 — `CLAUDE.md` "API grounding": optional swift-dev-links lookup (read-only); public files cleaned of internal notes.
 - 2026-10-21 — `chore/agent-tuneup` merged (PR #3, `5cf1e2a`): `glass-component-author` gets its MCP tools.
 - 2026-10-21 — Weekly grouped Dependabot config; MCP servers pinned (no `@latest`); XcodeBuildMCP added.
 - 2026-07-11 — 1.3.0: `GlassBottomAccessory`, `.glassMorphUnion`, `.glassBackgroundExtension`, Increased

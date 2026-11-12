@@ -89,11 +89,10 @@ or reviewing any native-path code, verify the signature against:
 
 If something you need isn't in that reference, say so and ask — don't invent it.
 
-Also check `swift-dev-links` (`search_links`, e.g. "glass") for recent community write-ups
-before adopting a new Apple API or an Xcode/SDK migration, alongside apple-docs/context7. Its
-coverage of the SwiftUI glass APIs is thin (11-12: two Liquid Glass links, one UIKit-only), so it
-never replaces the reference above. Read-only: never `refresh_index` or `set_tags`; the Mac mini
-owns them (ops I46).
+If a `swift-dev-links` MCP server is configured, also check it (`search_links`, e.g. "glass") for
+recent community write-ups before adopting a new Apple API or an Xcode/SDK migration. Its coverage
+of the SwiftUI glass APIs is thin, so it never replaces the reference above. Treat it as read-only:
+don't call `refresh_index` or `set_tags`.
 
 ## Build & test
 
