@@ -11,10 +11,7 @@
 
 ## Now
 
-- Nothing in flight. `chore/swift-dev-links` (ops I46): MCP server + read-only rule.
-
-**From ops** (detail in `~/Development/mini-ops/docs/OPS_BACKLOG.md`; read the item first, annotate it when done):
-- **I46:** swift-dev-links read-only (mini-ops OPS_BACKLOG I46): `.mcp.json` + `CLAUDE.md` "API grounding"; search only, never refresh/tag.
+- Nothing in flight.
 
 ## Next
 
@@ -42,6 +39,7 @@
 
 ## Recently done
 
+- 2026-11-12 — ops I46 ✅ (`0bf7928`): swift-dev-links MCP, read-only (`CLAUDE.md` "API grounding").
 - 2026-10-21 — `chore/agent-tuneup` merged (PR #3, `5cf1e2a`): `glass-component-author` gets its MCP tools.
 - 2026-10-21 — Weekly grouped Dependabot config; MCP servers pinned (no `@latest`); XcodeBuildMCP added.
 - 2026-07-11 — 1.3.0: `GlassBottomAccessory`, `.glassMorphUnion`, `.glassBackgroundExtension`, Increased
