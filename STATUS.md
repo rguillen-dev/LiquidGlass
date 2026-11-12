@@ -13,11 +13,15 @@
 
 - Nothing in flight.
 
+**From ops** (detail in `~/Development/mini-ops/docs/OPS_BACKLOG.md`; read the item first, annotate it when done):
+- **I58:** a `.mise.toml` `test` task (iOS 27.2 sim, sim-lock) so the mini's nightly can run the package's own tests.
+- **I59:** before the first 1.4.0 code commit, agenda-ios pins `exactVersion: 1.3.0` instead of the local path.
+
 ## Next
 
 - **1.4.0: native glass morphing on iOS 27** — `GlassMaterial.nativeGlassMorphingEnabled` (`false`) was a
   global kill switch for the device-only iOS 26.5 rendering corruption (07-01, from agenda-ios); never
-  retested on 27.x. (1) On-device pass on iOS 27.2 (`GlassEffectContainer`, `glassMorphID`, `glassMorphUnion`,
+  retested on 27.x. (0) agenda-ios pinned to 1.3.0 first (ops I59). (1) On-device pass on iOS 27.2 (`GlassEffectContainer`, `glassMorphID`, `glassMorphUnion`,
   the two agenda-ios screens). (2) If fixed: gate on `#available(iOS 27.0, *)` instead of flipping it, so
   26.x keeps today's non-morphing path. (3) Ride-alongs: `glassMorphTransition` wrapper (`glassEffectTransition`,
   v1.2 plan #5); check iOS 27's automatic glass tint doesn't stack with `glassThemeTint`.
