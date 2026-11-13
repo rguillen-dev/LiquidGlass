@@ -14,7 +14,6 @@
 - Nothing in flight.
 
 **Tracked with the maintainer's tooling:**
-- **I58:** run the package's own tests automatically (they run by hand today; last 62/62 on iOS 27.2).
 - **I59:** before the first 1.4.0 code commit, the consuming app pins `exactVersion: 1.3.0` instead of a local path.
 
 ## Next
@@ -43,6 +42,7 @@
 
 ## Recently done
 
+- 2026-11-13 — `mise run test` (iOS simulator, 62/62); the package tests now run in the maintainer's nightly (I58).
 - 2026-11-12 — `CLAUDE.md` "API grounding": optional swift-dev-links lookup (read-only); public files cleaned of internal notes.
 - 2026-10-21 — `chore/agent-tuneup` merged (PR #3, `5cf1e2a`): `glass-component-author` gets its MCP tools.
 - 2026-10-21 — Weekly grouped Dependabot config; MCP servers pinned (no `@latest`); XcodeBuildMCP added.
