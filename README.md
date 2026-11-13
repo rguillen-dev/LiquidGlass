@@ -249,6 +249,11 @@ system automatically. The iOS 17–18 fallback reads these settings itself:
 * iOS 17.0+
 * Xcode 16.0+ (Xcode 26+ recommended for native Liquid Glass rendering)
 
+## Running the tests
+
+`mise run test` runs the Swift Testing suite on the iOS simulator (iPhone 17 Pro, iOS 27.2 by default;
+set `SIMULATOR_NAME` / `SIMULATOR_OS` to use another). `swift test` runs it on macOS only.
+
 ## License
 
 MIT — see [LICENSE](LICENSE).

@@ -1,0 +1,22 @@
+# Tasks for this package (https://mise.jdx.dev): `mise run test`.
+# No tools to install: the tests run with Xcode's own xcodebuild (whichever Xcode is selected).
+
+[env]
+# Simulator for `test`. Defaults match the maintainer's setup; override from the shell,
+# e.g. `SIMULATOR_NAME="iPhone 16" SIMULATOR_OS=18.6 mise run test` to exercise the iOS 17–18 fallback path.
+SIMULATOR_NAME = "{{ get_env(name='SIMULATOR_NAME', default='iPhone 17 Pro') }}"
+SIMULATOR_OS = "{{ get_env(name='SIMULATOR_OS', default='27.2') }}"
+
+[tasks.test]
+description = "Run the package tests (Swift Testing) on the iOS simulator with xcodebuild"
+# `swift test` runs on macOS only; this exercises the iOS code paths. DerivedData stays in .build/ (gitignored).
+# Optional: SIM_LOCK = path to an executable `sim-lock <label> -- cmd...` that queues simulator jobs on a
+# shared machine. Unset (the default), the tests just run.
+run = """
+dest="platform=iOS Simulator,name=$SIMULATOR_NAME,OS=$SIMULATOR_OS"
+if [ -n "${SIM_LOCK:-}" ] && [ -x "$SIM_LOCK" ]; then
+  "$SIM_LOCK" "LiquidGlass:test" -- xcodebuild test -scheme LiquidGlass -destination "$dest" -derivedDataPath .build/xcode
+else
+  xcodebuild test -scheme LiquidGlass -destination "$dest" -derivedDataPath .build/xcode
+fi
+"""

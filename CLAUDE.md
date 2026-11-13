@@ -98,7 +98,8 @@ don't call `refresh_index` or `set_tags`.
 
 ```bash
 swift build
-swift test
+swift test        # macOS only
+mise run test     # iOS simulator (iPhone 17 Pro, iOS 27.2): the run that counts
 ```
 
 For native rendering you need Xcode 26 + an iOS 26 simulator; `swift build` on an
